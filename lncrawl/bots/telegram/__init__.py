@@ -89,7 +89,33 @@ class TelegramBot:
         """Process the download request."""
         app = context.user_data.get("app")
 
-        # Create a job to process the download in the background
+        # Select the output format (e.g., epub, pdf, etc.)
+        i = 0
+        buttons = []
+        while i < len(available_formats):
+            buttons.append(available_formats[i : i + 2])
+            i += 2
+
+        await update.message.reply_text(
+            "In which format would you like to download the novel?",
+            reply_markup=ReplyKeyboardMarkup(buttons, one_time_keyboard=True),
+        )
+
+        return "handle_output_format"
+
+    async def handle_output_format(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle user selection of output format."""
+        app = context.user_data.get("app")
+        user_input = update.message.text.strip().lower()
+
+        if user_input in available_formats:
+            app.output_formats = {fmt: fmt == user_input for fmt in available_formats}
+            await update.message.reply_text(f"Selected format: {user_input}")
+        else:
+            await update.message.reply_text("Invalid format. Please try again.")
+            return "handle_output_format"
+
+        # Start the download process
         job = context.job_queue.run_once(self.start_download, 1, context=context)
         context.user_data["job"] = job
 
