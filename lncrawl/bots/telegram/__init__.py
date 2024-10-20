@@ -112,7 +112,7 @@ class TelegramBot:
             },
         )
         self.application.add_handler(conv_handler)
-
+        await self.application.run_polling()
         # Fallback helper
         self.application.add_handler(
             MessageHandler(filters.TEXT, self.handle_downloader)
