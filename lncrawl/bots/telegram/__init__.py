@@ -38,7 +38,7 @@ class TelegramBot:
 
     async def init_redis(self):
         """Initialize Redis connection."""
-        self.redis = await aioredis.create_redis_pool("redis://localhost")
+        self.redis = await aioredis.from_url("redis://localhost")
 
     async def start(self):
         os.environ["debug_mode"] = "yes"
@@ -274,41 +274,27 @@ class TelegramBot:
     async def handle_select_novel(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle novel selection."""
         app = context.user_data.get("app")
-        selected = None
-        text = update.message.text
+        selected_index = int(update.message.text.strip()) - 1
 
-        if text:
-            if text.isdigit():
-                selected = app.search_results[int(text) - 1]
-            else:
-                for i, item in enumerate(app.search_results[:10]):
-                    sample = f"{i + 1}. {item['title']}"
-                    if text.startswith(sample):
-                        selected = item
-                    elif len(text) >= 5 and text.lower() in item["title"].lower():
-                        selected = item
+        if selected_index < 0 or selected_index >= len(app.search_results):
+            await update.message.reply_text("Invalid selection. Please try again.")
+            return "handle_select_novel"
 
-        if not selected:
-            return await self.show_novel_selection(update, context)
-
-        context.user_data["selected"] = selected
+        context.user_data["selected"] = app.search_results[selected_index]
         return await self.show_source_selection(update, context)
 
     async def show_source_selection(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Display novel source selection options."""
-        app = context.user_data.get("app")
-        selected = context.user_data.get("selected")
-
-        if len(selected["novels"]) == 1:
-            app.crawler = prepare_crawler(selected["novels"][0]["url"])
-            return await self.get_novel_info(update, context)
+        """Display sources for the selected novel."""
+        app = context.user_data["app"]
+        selected = context.user_data["selected"]
+        available_sources = selected["novels"]
 
         await update.message.reply_text(
-            f'Choose a source to download "{selected["title"]}", or send /cancel to stop this session.',
+            "Choose a source for your novel, or send /cancel to stop.",
             reply_markup=ReplyKeyboardMarkup(
                 [
-                    [f"{index + 1}. {novel['url']} {novel.get('info', '')}"]
-                    for index, novel in enumerate(selected["novels"])
+                    [f"{source['name']} (URL: {source['url']})"]
+                    for source in available_sources
                 ],
                 one_time_keyboard=True,
             ),
@@ -316,195 +302,36 @@ class TelegramBot:
         return "handle_select_source"
 
     async def handle_select_source(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Handle novel source selection."""
-        app = context.user_data.get("app")
-        selected = context.user_data.get("selected")
-        source = None
-        text = update.message.text
+        """Handle source selection for the novel."""
+        app = context.user_data["app"]
+        selected = context.user_data["selected"]
+        source_name = update.message.text.strip()
 
-        if text:
-            if text.isdigit():
-                source = selected["novels"][int(text) - 1]
-            else:
-                for i, item in enumerate(selected["novels"]):
-                    sample = f"{i + 1}. {item['url']}"
-                    if text.startswith(sample) or len(text) >= 5 and text.lower() in item["url"].lower():
-                        source = item
-
-        if not selected or not (source and source.get("url")):
-            return await self.show_source_selection(update, context)
-
-        app.crawler = prepare_crawler(source.get("url"))
-        return await self.get_novel_info(update, context)
-
-    async def get_novel_info(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Retrieve and display novel information."""
-        app = context.user_data.get("app")
-
-        await update.message.reply_text(app.crawler.novel_url)
-        await update.message.reply_text("Reading novel info...")
-        app.get_novel_info()
-
-        if os.path.exists(app.output_path):
-            await update.message.reply_text(
-                "Local cache found. Do you want to use it?",
-                reply_markup=ReplyKeyboardMarkup([["Yes", "No"]], one_time_keyboard=True),
-            )
-            return "handle_delete_cache"
+        for source in selected["novels"]:
+            if source_name in source['name']:
+                app.selected_source = source
+                break
         else:
-            os.makedirs(app.output_path, exist_ok=True)
-            return await self.display_range_selection_help(update)
-
-    async def handle_delete_cache(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Handle cache deletion request."""
-        app = context.user_data.get("app")
-        text = update.message.text
-
-        if text.startswith("No"):
-            if os.path.exists(app.output_path):
-                shutil.rmtree(app.output_path, ignore_errors=True)
-            os.makedirs(app.output_path, exist_ok=True)
-
-        return await self.display_range_selection_help(update)
-
-    async def display_range_selection_help(self, update: Update):
-        """Display chapter range selection options."""
-        await update.message.reply_text(
-            "\n".join([
-                "Send /all to download everything.",
-                "Send /last to download last 50 chapters.",
-                "Send /first to download first 50 chapters.",
-                "Send /volume to choose specific volumes to download",
-                "Send /chapter to choose a chapter range to download",
-                "To terminate this session, send /cancel.",
-            ])
-        )
-        return "handle_range_selection"
-
-    async def range_selection_done(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Handle the completion of range selection."""
-        app = context.user_data.get("app")
-        await update.message.reply_text(
-            f"You have selected {len(app.chapters)} chapters to download."
-        )
-
-        if len(app.chapters) == 0:
-            return await self.display_range_selection_help(update)
+            await update.message.reply_text("Invalid source. Please try again.")
+            return "handle_select_source"
 
         await update.message.reply_text(
-            "Do you want to generate a single file or split the books into volumes?",
-            reply_markup=ReplyKeyboardMarkup([["Single file", "Split by volumes"]], one_time_keyboard=True),
+            "Source selected. Now please select output format:",
+            reply_markup=ReplyKeyboardMarkup([
+                [format] for format in available_formats
+            ], one_time_keyboard=True)
         )
-        return "handle_pack_by_volume"
-
-    async def handle_range_all(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Handle request to download all chapters."""
-        app = context.user_data.get("app")
-        app.chapters = app.crawler.chapters[:]
-        return await self.range_selection_done(update, context)
-
-    async def handle_range_first(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Handle request to download the first 50 chapters."""
-        app = context.user_data.get("app")
-        app.chapters = app.crawler.chapters[:50]
-        return await self.range_selection_done(update, context)
-
-    async def handle_range_last(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Handle request to download the last 50 chapters."""
-        app = context.user_data.get("app")
-        app.chapters = app.crawler.chapters[-50:]
-        return await self.range_selection_done(update, context)
-
-    async def handle_range_volume(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Handle volume selection."""
-        app = context.user_data.get("app")
-        buttons = [str(vol["id"]) for vol in app.crawler.volumes]
-        await update.message.reply_text(
-            "I got these volumes: "
-            + ", ".join(buttons)
-            + "\nEnter which one of these volumes you want to download separated by space or commas."
-        )
-        return "handle_volume_selection"
-
-    async def handle_volume_selection(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Handle the specific volume selection."""
-        app = context.user_data.get("app")
-
-        text = update.message.text
-        selected = re.findall(r"\d+", text)
-        await update.message.reply_text("Got the volumes: " + ", ".join(selected))
-
-        selected = [int(x) for x in selected]
-        app.chapters = [
-            chap for chap in app.crawler.chapters if selected.count(chap["volume"]) > 0
-        ]
-        return await self.range_selection_done(update, context)
-
-    async def handle_range_chapter(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Handle chapter range selection."""
-        app = context.user_data.get("app")
-        chapters = app.crawler.chapters
-        await update.message.reply_text(
-            f"I got {len(chapters)} chapters. Enter the start and end chapter you want to generate, separated by space or comma."
-        )
-        return "handle_chapter_selection"
-
-    async def handle_chapter_selection(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Handle specific chapter range selection."""
-        app = context.user_data.get("app")
-        text = update.message.text
-        selected = re.findall(r"\d+", text)
-
-        if len(selected) != 2:
-            await update.message.reply_text("Sorry, I did not understand. Please try again.")
-            return "handle_range_chapter"
-        else:
-            selected = [int(x) for x in selected]
-            app.chapters = app.crawler.chapters[selected[0] - 1:selected[1]]
-            await update.message.reply_text(
-                f"Got the start chapter: {selected[0]}\n"
-                f"The end chapter: {selected[1]}\n"
-                f"Total chapters chosen: {len(app.chapters)}."
-            )
-        return await self.range_selection_done(update, context)
-
-    async def handle_pack_by_volume(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Handle output format selection (split by volumes or single file)."""
-        app = context.user_data.get("app")
-        text = update.message.text
-        app.pack_by_volume = text.startswith("Split")
-
-        if app.pack_by_volume:
-            await update.message.reply_text("I will split output files into volumes.")
-        else:
-            await update.message.reply_text(
-                "I will generate single output files whenever possible."
-            )
-
-        i = 0
-        new_list = [["all"]]
-        while i < len(available_formats):
-            new_list.append(available_formats[i:i + 2])
-            i += 2
-
-        await update.message.reply_text(
-            "In which format do you want me to generate your book?",
-            reply_markup=ReplyKeyboardMarkup(new_list, one_time_keyboard=True),
-        )
-
         return "handle_output_format"
 
-    async def handle_output_format(self, update, context):
+    async def handle_output_format(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle output format selection."""
-        app = context.user_data.get("app")
-        user = update.message.from_user
-
         text = update.message.text.strip().lower()
+        app = context.user_data["app"]
         app.output_formats = {}
+
         if text in available_formats:
             for x in available_formats:
                 app.output_formats[x] = (x == text)
-
         elif text != "all":
             await update.message.reply_text("Sorry, I did not understand.")
             return
@@ -513,7 +340,7 @@ class TelegramBot:
         job = context.job_queue.run_once(
             self.process_download_request,
             1,
-            name=str(user.id),
+            name=str(update.effective_user.id),
             chat_id=chat_id,
             data=context.user_data
         )
@@ -526,14 +353,14 @@ class TelegramBot:
 
         return ConversationHandler.END
 
-    async def process_download_request(self, context):
+    async def process_download_request(self, context: ContextTypes.DEFAULT_TYPE):
         """Process the download request in the background."""
         job = context.job
         user_data = job.data
         app = user_data.get("app")
 
         if app:
-            user_data["status"] = f'Downloading "{app.crawler.novel_title}"'
+            user_data["status"] = f'Downloading "{app.selected_source["title"]}"'
             app.start_download()
             await context.bot.send_message(job.chat_id, text="Download finished.")
 
@@ -591,4 +418,10 @@ class TelegramBot:
 
 if __name__ == "__main__":
     bot = TelegramBot()
-    asyncio.run(bot.start()) 
+
+    # Run the bot
+    try:
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(bot.start())
+    except RuntimeError as e:
+        print(f"RuntimeError: {e}")
