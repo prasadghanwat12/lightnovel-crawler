@@ -25,7 +25,7 @@ available_formats = [
 
 
 class TelegramBot:
-    async def start(self):
+    def start(self):
         os.environ["debug_mode"] = "yes"
 
         # Build the Application and with bot's token.
@@ -112,7 +112,7 @@ class TelegramBot:
             },
         )
         self.application.add_handler(conv_handler)
-        await self.application.run_polling()
+
         # Fallback helper
         self.application.add_handler(
             MessageHandler(filters.TEXT, self.handle_downloader)
