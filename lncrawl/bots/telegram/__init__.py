@@ -587,7 +587,12 @@ class TelegramBot:
         return context.job_queue.get_jobs_by_name(name)
 
 
-if __name__ == "__main__":
+async def main():
     bot = TelegramBot()
-    loop = asyncio.get_event_loop()  # Get the current event loop
-    loop.run_until_complete(bot.start())
+    await bot.start()
+
+if __name__ == "__main__":
+    try:
+        asyncio.run(main())  # This should work in a normal script context
+    except RuntimeError as e:
+        print(f"Runtime error: {e}")
