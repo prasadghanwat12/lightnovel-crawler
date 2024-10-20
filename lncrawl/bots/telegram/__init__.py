@@ -587,3 +587,6 @@ class TelegramBot:
         name = str(update.effective_message.chat_id) if update else chat_id
         return context.job_queue.get_jobs_by_name(name)
 
+if __name__ == "__main__":
+    bot = TelegramBot()
+    asyncio.run(bot.start())
