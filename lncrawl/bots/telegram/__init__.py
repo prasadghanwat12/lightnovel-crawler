@@ -11,7 +11,9 @@ from telegram.ext import (Application, CommandHandler, ContextTypes, Conversatio
 from lncrawl.core.app import App
 from lncrawl.core.sources import prepare_crawler
 from lncrawl.utils.uploader import upload
+import tracemalloc
 
+tracemalloc.start()
 logger = logging.getLogger(__name__)
 
 available_formats = [
@@ -587,12 +589,6 @@ class TelegramBot:
         return context.job_queue.get_jobs_by_name(name)
 
 
-async def main():
-    bot = TelegramBot()
-    await bot.start()
-
 if __name__ == "__main__":
-    try:
-        asyncio.run(main())  # This should work in a normal script context
-    except RuntimeError as e:
-        print(f"Runtime error: {e}")
+    bot = TelegramBot()
+    asyncio.run(bot.start()) 
