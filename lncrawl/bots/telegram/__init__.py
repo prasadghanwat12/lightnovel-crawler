@@ -25,109 +25,134 @@ available_formats = [
 
 
 class TelegramBot:
-    def start(self):
+    def __init__(self):
+        self.application = None
+
+    async def init_app(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        await update.message.reply_text("Application initialized.")
+
+    async def handle_novel_url(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        await update.message.reply_text("Novel URL handled.")
+
+    async def handle_crawler_to_search(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        await update.message.reply_text("Crawler search handled.")
+
+    async def handle_select_novel(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        await update.message.reply_text("Novel selected.")
+
+    async def handle_select_source(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        await update.message.reply_text("Source selected.")
+
+    async def handle_delete_cache(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        await update.message.reply_text("Cache deleted.")
+
+    async def handle_range_all(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        await update.message.reply_text("All range handled.")
+
+    async def handle_range_last(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        await update.message.reply_text("Last range handled.")
+
+    async def handle_range_first(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        await update.message.reply_text("First range handled.")
+
+    async def handle_range_volume(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        await update.message.reply_text("Volume range handled.")
+
+    async def handle_range_chapter(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        await update.message.reply_text("Chapter range handled.")
+
+    async def display_range_selection_help(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        await update.message.reply_text("Range selection help displayed.")
+
+    async def handle_volume_selection(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        await update.message.reply_text("Volume selection handled.")
+
+    async def handle_chapter_selection(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        await update.message.reply_text("Chapter selection handled.")
+
+    async def handle_pack_by_volume(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        await update.message.reply_text("Pack by volume handled.")
+
+    async def handle_output_format(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        await update.message.reply_text("Output format handled.")
+
+    async def handle_downloader(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        await update.message.reply_text("Downloader handled.")
+
+    async def error_handler(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        await update.message.reply_text("An error occurred.")
+
+    async def show_help(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        await update.message.reply_text("Help menu displayed.")
+
+    async def destroy_app(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        await update.message.reply_text("Application destroyed.")
+
+    async def start(self):
         os.environ["debug_mode"] = "no"
 
-        # Build the Application and with bot's token.
         TOKEN = os.getenv("TELEGRAM_TOKEN", "")
         self.application = Application.builder().token(TOKEN).build()
 
-        # Add a command helper for help
         self.application.add_handler(CommandHandler("help", self.show_help))
 
-        # Add conversation handler with states
         conv_handler = ConversationHandler(
             entry_points=[
                 CommandHandler("start", self.init_app),
-                MessageHandler(
-                    filters.TEXT & ~(filters.COMMAND), self.handle_novel_url
-                ),
+                MessageHandler(filters.TEXT & ~(filters.COMMAND), self.handle_novel_url),
             ],
             fallbacks=[
                 CommandHandler("cancel", self.destroy_app),
             ],
             states={
                 "handle_novel_url": [
-                    MessageHandler(
-                        filters.TEXT & ~(filters.COMMAND), self.handle_novel_url
-                    ),
+                    MessageHandler(filters.TEXT & ~(filters.COMMAND), self.handle_novel_url),
                 ],
                 "handle_crawler_to_search": [
-                    CommandHandler(
-                        "skip", self.handle_crawler_to_search
-                    ),
-                    MessageHandler(
-                        filters.TEXT & ~(filters.COMMAND), self.handle_crawler_to_search
-                    ),
+                    CommandHandler("skip", self.handle_crawler_to_search),
+                    MessageHandler(filters.TEXT & ~(filters.COMMAND), self.handle_crawler_to_search),
                 ],
                 "handle_select_novel": [
-                    MessageHandler(
-                        filters.TEXT & ~(filters.COMMAND), self.handle_select_novel
-                    ),
+                    MessageHandler(filters.TEXT & ~(filters.COMMAND), self.handle_select_novel),
                 ],
                 "handle_select_source": [
-                    MessageHandler(
-                        filters.TEXT & ~(filters.COMMAND), self.handle_select_source
-                    ),
+                    MessageHandler(filters.TEXT & ~(filters.COMMAND), self.handle_select_source),
                 ],
                 "handle_delete_cache": [
-                    MessageHandler(
-                        filters.TEXT & ~(filters.COMMAND), self.handle_delete_cache
-                    ),
+                    MessageHandler(filters.TEXT & ~(filters.COMMAND), self.handle_delete_cache),
                 ],
                 "handle_range_selection": [
                     CommandHandler("all", self.handle_range_all),
                     CommandHandler("last", self.handle_range_last),
-                    CommandHandler(
-                        "first", self.handle_range_first
-                    ),
-                    CommandHandler(
-                        "volume", self.handle_range_volume
-                    ),
-                    CommandHandler(
-                        "chapter", self.handle_range_chapter
-                    ),
+                    CommandHandler("first", self.handle_range_first),
+                    CommandHandler("volume", self.handle_range_volume),
+                    CommandHandler("chapter", self.handle_range_chapter),
                     MessageHandler(filters.TEXT & ~(filters.COMMAND), self.display_range_selection_help),
                 ],
                 "handle_volume_selection": [
-                    MessageHandler(
-                        filters.TEXT & ~(filters.COMMAND), self.handle_volume_selection
-                    ),
+                    MessageHandler(filters.TEXT & ~(filters.COMMAND), self.handle_volume_selection),
                 ],
                 "handle_chapter_selection": [
-                    MessageHandler(
-                        filters.TEXT & ~(filters.COMMAND), self.handle_chapter_selection
-                    ),
+                    MessageHandler(filters.TEXT & ~(filters.COMMAND), self.handle_chapter_selection),
                 ],
                 "handle_pack_by_volume": [
-                    MessageHandler(
-                        filters.TEXT & ~(filters.COMMAND), self.handle_pack_by_volume
-                    ),
+                    MessageHandler(filters.TEXT & ~(filters.COMMAND), self.handle_pack_by_volume),
                 ],
                 "handle_output_format": [
-                    MessageHandler(
-                        filters.TEXT & ~(filters.COMMAND), self.handle_output_format
-                    ),
+                    MessageHandler(filters.TEXT & ~(filters.COMMAND), self.handle_output_format),
                 ],
             },
         )
         self.application.add_handler(conv_handler)
 
-        # Fallback helper
-        self.application.add_handler(
-            MessageHandler(filters.TEXT, self.handle_downloader)
-        )
+        self.application.add_handler(MessageHandler(filters.TEXT, self.handle_downloader))
 
-        # Log all errors
         self.application.add_error_handler(self.error_handler)
 
         print("Telegram bot is online!")
 
-        # Run the bot until you press Ctrl-C or the process receives SIGINT,
-        # SIGTERM or SIGABRT. This should be used most of the time, since
-        # start_polling() is non-blocking and will stop the bot gracefully.
-        # Start the Bot
-        self.application.run_polling(allowed_updates=Update.ALL_TYPES)
+        await self.application.run_polling(allowed_updates=Update.ALL_TYPES)
+
 
     async def error_handler(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Log Errors caused by Updates."""
