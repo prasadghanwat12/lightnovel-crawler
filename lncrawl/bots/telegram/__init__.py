@@ -690,3 +690,7 @@ class TelegramBot:
         #     self.show_help(bot, update)
 
         return ConversationHandler.END
+
+if __name__ == "__main__":
+    bot = TelegramBot()
+    asyncio.run(bot.start())
