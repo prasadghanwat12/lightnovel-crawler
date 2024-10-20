@@ -2,13 +2,12 @@ import logging
 import os
 import re
 import shutil
-from urllib.parse import urlparse
 import time
 import asyncio
 import aioredis
+from urllib.parse import urlparse
 from telegram import ReplyKeyboardMarkup, ReplyKeyboardRemove, Update
-from telegram.ext import (Application, CommandHandler, ContextTypes,
-                          ConversationHandler, Job, MessageHandler, filters)
+from telegram.ext import (Application, CommandHandler, ContextTypes, ConversationHandler, Job, MessageHandler, filters)
 from lncrawl.core.app import App
 from lncrawl.core.sources import prepare_crawler
 from lncrawl.utils.uploader import upload
@@ -587,6 +586,8 @@ class TelegramBot:
         name = str(update.effective_message.chat_id) if update else chat_id
         return context.job_queue.get_jobs_by_name(name)
 
+
+# Add this part at the end of the script to correctly run the async bot
 if __name__ == "__main__":
     bot = TelegramBot()
     asyncio.run(bot.start())
