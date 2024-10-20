@@ -26,7 +26,7 @@ available_formats = [
 
 class TelegramBot:
     def start(self):
-        os.environ["debug_mode"] = "yes"
+        os.environ["debug_mode"] = "no"
 
         # Build the Application and with bot's token.
         TOKEN = os.getenv("TELEGRAM_TOKEN", "")
