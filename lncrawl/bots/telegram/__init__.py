@@ -587,7 +587,7 @@ class TelegramBot:
         return context.job_queue.get_jobs_by_name(name)
 
 
-# Add this part at the end of the script to correctly run the async bot
 if __name__ == "__main__":
     bot = TelegramBot()
-    asyncio.run(bot.start())
+    loop = asyncio.get_event_loop()  # Get the current event loop
+    loop.run_until_complete(bot.start())
