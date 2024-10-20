@@ -5,7 +5,6 @@ from telegram import ReplyKeyboardMarkup, ReplyKeyboardRemove, Update
 from telegram.ext import (Application, CommandHandler, ContextTypes,
                           ConversationHandler, MessageHandler, filters, Job)
 from lncrawl.core.app import App
-from lncrawl.core.sources import prepare_crawler
 from lncrawl.utils.uploader import upload
 
 logger = logging.getLogger(__name__)
@@ -36,6 +35,9 @@ class TelegramBot:
                 ],
                 "handle_output_format": [
                     MessageHandler(filters.TEXT & ~filters.COMMAND, self.handle_output_format),
+                ],
+                "handle_pack_by_volume": [
+                    MessageHandler(filters.TEXT & ~filters.COMMAND, self.handle_pack_by_volume),
                 ],
             },
         )
@@ -69,7 +71,11 @@ class TelegramBot:
 
     async def handle_novel_url(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle user input for the novel URL or search query."""
-        app = context.user_data.get("app")
+        if "app" not in context.user_data:
+            await update.message.reply_text("Error: Application is not initialized.")
+            return "handle_novel_url"
+
+        app = context.user_data["app"]
         app.user_input = update.message.text.strip()
 
         try:
@@ -115,8 +121,31 @@ class TelegramBot:
             await update.message.reply_text("Invalid format. Please try again.")
             return "handle_output_format"
 
+        # Ask user if they want single file or split by volume
+        await update.message.reply_text(
+            "Do you want a single file or split the book by volumes?",
+            reply_markup=ReplyKeyboardMarkup([["Single file", "Split by volumes"]], one_time_keyboard=True),
+        )
+
+        return "handle_pack_by_volume"
+
+    async def handle_pack_by_volume(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle user choice for single file or split by volume."""
+        app = context.user_data.get("app")
+        user_input = update.message.text.strip().lower()
+
+        if user_input == "single file":
+            app.pack_by_volume = False
+            await update.message.reply_text("You chose to generate a single file.")
+        elif user_input == "split by volumes":
+            app.pack_by_volume = True
+            await update.message.reply_text("You chose to split the book by volumes.")
+        else:
+            await update.message.reply_text("Invalid choice. Please try again.")
+            return "handle_pack_by_volume"
+
         # Start the download process
-        job = context.job_queue.run_once(self.start_download, 1, context=context)
+        job = context.job_queue.run_once(self.start_download, 1, data=context.user_data)  # Fix here
         context.user_data["job"] = job
 
         await update.message.reply_text("Download started. I will notify you when it completes.")
@@ -124,7 +153,7 @@ class TelegramBot:
 
     async def start_download(self, context):
         """Start the download process."""
-        app = context.job.context["app"]
+        app = context.job.data["app"]
 
         app.start_download()
         await context.bot.send_message(chat_id=context.job.chat_id, text="Download finished!")
@@ -133,7 +162,7 @@ class TelegramBot:
 
     async def generate_output(self, context):
         """Generate the output files and send them to the user."""
-        app = context.job.context["app"]
+        app = context.job.data["app"]
         output_files = app.bind_books()
 
         for file in output_files:
