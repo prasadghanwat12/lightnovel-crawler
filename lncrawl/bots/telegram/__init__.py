@@ -6,6 +6,7 @@ from telegram.ext import (Application, CommandHandler, ContextTypes,
                           ConversationHandler, MessageHandler, filters, Job)
 from lncrawl.core.app import App
 from lncrawl.utils.uploader import upload
+from lncrawl.core.sources import prepare_crawler  # Added missing import
 
 logger = logging.getLogger(__name__)
 
@@ -211,3 +212,62 @@ class TelegramBot:
 
         await context.bot.send_message(chat_id, text="Session closed", reply_markup=ReplyKeyboardRemove())
         return ConversationHandler.END
+
+    async def show_crawlers_to_search(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle showing the list of crawlers."""
+        app = context.user_data.get("app")
+
+        if not app.crawler_links:
+            await update.message.reply_text("No crawler links found. Please try again or use a different query.")
+            return "handle_novel_url"  # Return to previous state
+
+        buttons = []
+
+        def make_button(i, url):
+            return "%d - %s" % (i + 1, urlparse(url).hostname)
+
+        for i in range(1, len(app.crawler_links) + 1, 2):
+            buttons += [
+                [
+                    make_button(i - 1, app.crawler_links[i - 1]),
+                    make_button(i, app.crawler_links[i]) if i < len(app.crawler_links) else "",
+                ]
+            ]
+
+        await update.message.reply_text(
+            "Choose where to search for your novel, \n"
+            "or send /skip to search everywhere.",
+            reply_markup=ReplyKeyboardMarkup(buttons, one_time_keyboard=True),
+        )
+        return "handle_crawler_to_search"
+
+    async def show_novel_selection(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle showing the list of novel selection."""
+        app = context.user_data.get("app")
+
+        if not app.search_results:
+            await update.message.reply_text(
+                "No results found by your query.\nTry again or send /cancel to stop."
+            )
+            return "handle_novel_url"
+
+        if len(app.search_results) == 1:
+            context.user_data["selected"] = app.search_results[0]
+            return self.show_source_selection(update, context)
+
+        await update.message.reply_text(
+            "Choose any one of the following novels,"
+            + " or send /cancel to stop this session.",
+            reply_markup=ReplyKeyboardMarkup(
+                [
+                    [
+                        "%d. %s (in %d sources)"
+                        % (index + 1, res["title"], len(res["novels"]))
+                    ]
+                    for index, res in enumerate(app.search_results)
+                ],
+                one_time_keyboard=True,
+            ),
+        )
+
+        return "handle_select_novel"
