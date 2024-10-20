@@ -251,23 +251,16 @@ class TelegramBot:
 
         if len(app.search_results) == 0:
             await update.message.reply_text(
-                "No results found by your query. Try again or send /cancel to stop."
+                f"Sorry, I couldn't find anything for \"{app.user_input}\". Please try again."
             )
-            return "handle_novel_url"
+            return await self.init_app(update, context)
 
-        if len(app.search_results) == 1:
-            context.user_data["selected"] = app.search_results[0]
-            return await self.show_source_selection(update, context)
-
+        options = [
+            [f"{i + 1} - {novel['title']}" for i, novel in enumerate(app.search_results)]
+        ]
         await update.message.reply_text(
-            "Choose any one of the following novels, or send /cancel to stop this session.",
-            reply_markup=ReplyKeyboardMarkup(
-                [
-                    [f"{index + 1}. {res['title']} (in {len(res['novels'])} sources)"]
-                    for index, res in enumerate(app.search_results)
-                ],
-                one_time_keyboard=True,
-            ),
+            "Choose the novel you want to download:",
+            reply_markup=ReplyKeyboardMarkup(options, one_time_keyboard=True),
         )
         return "handle_select_novel"
 
@@ -421,7 +414,7 @@ if __name__ == "__main__":
 
     # Run the bot
     try:
-        loop = asyncio.get_event_loop()
-        loop.run_until_complete(bot.start())
+        # Start the bot event loop
+        asyncio.run(bot.start())
     except RuntimeError as e:
         print(f"RuntimeError: {e}")
