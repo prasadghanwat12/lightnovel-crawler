@@ -59,12 +59,20 @@ class TelegramBot:
         return ConversationHandler.END
 
     async def init_app(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Initialize a new session."""
+        """Initialize a new session and set the output path."""
         if context.user_data.get("app"):
             await self.destroy_app(update, context)
 
         app = App()
         app.initialize()
+
+        # Define the output path for the app
+        app.output_path = os.path.join(os.getcwd(), "downloads", str(update.message.chat_id))
+
+        # Ensure the output directory exists
+        if not os.path.exists(app.output_path):
+            os.makedirs(app.output_path)
+
         context.user_data["app"] = app
         await update.message.reply_text("A new session is created. Please provide the novel URL or query.")
         return "handle_novel_url"
