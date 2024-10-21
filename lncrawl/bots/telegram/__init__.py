@@ -8,7 +8,6 @@ logger = logging.getLogger(__name__)
 # Global dictionary to store user-specific data, including chat_id
 user_data_store = {}
 
-
 class TelegramBot:
     def __init__(self):
         os.environ["debug_mode"] = "yes"
@@ -18,11 +17,11 @@ class TelegramBot:
         self.application = Application.builder().token(TOKEN).build()
 
     async def start(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Initiates the bot for a user."""
+        """Initiates the bot for a user when /start command is sent."""
         chat_id = update.effective_chat.id
         user_data_store[chat_id] = {}  # Initialize data store for the user
         await update.message.reply_text("Welcome! Send me a novel URL or /cancel to exit.")
-        return "handle_novel_url"  # Move to the next state
+        return "handle_novel_url"  # Transition to handle_novel_url state
 
     async def cancel(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Cancels the current conversation and clears user data."""
@@ -43,9 +42,9 @@ class TelegramBot:
         user_data_store[chat_id]['novel_url'] = url
         await update.message.reply_text(f"URL received: {url}. Processing...")
 
-        # Transition: Ask the user to send another URL or end the conversation
+        # Optionally, ask for more URLs or offer an exit
         await update.message.reply_text("Send another URL or /cancel to exit.")
-        return "handle_novel_url"  # Stay in the same state to process another URL
+        return "handle_novel_url"  # Stay in the same state for more URLs
 
     async def show_help(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Displays help information."""
@@ -73,13 +72,13 @@ class TelegramBot:
             logging.basicConfig(level=logging.INFO)
 
         self.setup_conversation_handler()
-        self.application.run_polling()  # This runs the bot and listens for /start
+        self.application.run_polling()  # This starts the bot and listens for commands like /start
 
 
-# Use this method to start the bot without manually invoking 'start()'
+# Use this method to start the bot without directly invoking 'start()'
 def run_bot():
     bot = TelegramBot()
-    bot.run()
+    bot.run()  # This will run the bot and wait for user commands
 
 if __name__ == "__main__":
     run_bot()
