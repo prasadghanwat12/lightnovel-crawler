@@ -42,14 +42,10 @@ class TelegramBot:
         chat_id = update.effective_chat.id
         url = update.message.text
 
-        # Ensure user has been initialized
         if chat_id not in user_data_store:
             user_data_store[chat_id] = {}
 
-        # Store URL in user-specific storage
         user_data_store[chat_id]['novel_url'] = url
-
-        # Proceed with handling URL and initiate further steps
         await update.message.reply_text(f"URL received: {url}. Processing...")
 
     async def show_help(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -74,6 +70,15 @@ class TelegramBot:
         """Runs the bot."""
         self.setup_conversation_handler()
         self.application.run_polling()
+
+def run_bot():
+    """Function to start the bot, without direct start() call."""
+    bot = TelegramBot()
+    bot.run()
+
+if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
+    run_bot()
 
 
 if __name__ == "__main__":
