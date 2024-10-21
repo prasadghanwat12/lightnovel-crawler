@@ -55,7 +55,7 @@ class TelegramBot:
     def setup_conversation_handler(self):
         """Sets up the conversation handler with states."""
         conv_handler = ConversationHandler(
-            entry_points=[CommandHandler("start", self.start)],
+            entry_points=[CommandHandler("start", self.start)],  # Start via /start command
             states={
                 "handle_novel_url": [
                     MessageHandler(filters.TEXT & ~filters.COMMAND, self.handle_novel_url),
@@ -69,19 +69,14 @@ class TelegramBot:
     def run(self):
         """Runs the bot."""
         self.setup_conversation_handler()
-        self.application.run_polling()
+        self.application.run_polling()  # This runs the bot and listens for /start
 
+
+# Use this method to start the bot without manually invoking 'start()'
 def run_bot():
-    """Function to start the bot, without direct start() call."""
     bot = TelegramBot()
     bot.run()
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
     run_bot()
-
-
-if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
-    bot = TelegramBot()
-    bot.run()
