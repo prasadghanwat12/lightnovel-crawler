@@ -5,14 +5,6 @@ from telegram.ext import (Application, CommandHandler, ConversationHandler, Mess
 
 logger = logging.getLogger(__name__)
 
-available_formats = [
-    "epub",
-    "text",
-    "web",
-    "mobi",
-    "pdf",
-]
-
 # Global dictionary to store user-specific data, including chat_id
 user_data_store = {}
 
