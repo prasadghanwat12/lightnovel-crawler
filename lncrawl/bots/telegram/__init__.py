@@ -20,7 +20,9 @@ user_data_store = {}
 class TelegramBot:
     def __init__(self):
         os.environ["debug_mode"] = "yes"
-        TOKEN = os.getenv("TELEGRAM_TOKEN", "")
+        TOKEN = os.getenv("TELEGRAM_TOKEN")
+        if not TOKEN:
+            raise ValueError("TELEGRAM_TOKEN environment variable is missing!")
         self.application = Application.builder().token(TOKEN).build()
 
     async def start(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -28,6 +30,7 @@ class TelegramBot:
         chat_id = update.effective_chat.id
         user_data_store[chat_id] = {}  # Initialize data store for the user
         await update.message.reply_text("Welcome! Send me a novel URL or /cancel to exit.")
+        return "handle_novel_url"  # Move to the next state
 
     async def cancel(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Cancels the current conversation and clears user data."""
@@ -47,6 +50,10 @@ class TelegramBot:
 
         user_data_store[chat_id]['novel_url'] = url
         await update.message.reply_text(f"URL received: {url}. Processing...")
+
+        # Transition: Ask the user to send another URL or end the conversation
+        await update.message.reply_text("Send another URL or /cancel to exit.")
+        return "handle_novel_url"  # Stay in the same state to process another URL
 
     async def show_help(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Displays help information."""
@@ -68,6 +75,11 @@ class TelegramBot:
 
     def run(self):
         """Runs the bot."""
+        if os.environ.get("debug_mode") == "yes":
+            logging.basicConfig(level=logging.DEBUG)
+        else:
+            logging.basicConfig(level=logging.INFO)
+
         self.setup_conversation_handler()
         self.application.run_polling()  # This runs the bot and listens for /start
 
@@ -78,5 +90,4 @@ def run_bot():
     bot.run()
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
     run_bot()
