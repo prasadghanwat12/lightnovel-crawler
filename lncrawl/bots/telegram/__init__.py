@@ -3,6 +3,8 @@ import os
 from telegram import ReplyKeyboardRemove, Update
 from telegram.ext import (Application, CommandHandler, ConversationHandler, MessageHandler, filters, ContextTypes)
 
+# Set up logging
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Global dictionary to store user-specific data, including chat_id
@@ -66,15 +68,10 @@ class TelegramBot:
 
     def run(self):
         """Runs the bot."""
-        if os.environ.get("debug_mode") == "yes":
-            logging.basicConfig(level=logging.DEBUG)
-        else:
-            logging.basicConfig(level=logging.INFO)
-
         self.setup_conversation_handler()
         self.application.run_polling()  # This starts the bot and listens for commands like /start
 
-# Use this method to start the bot without directly invoking 'start()'
+# Function to start the bot without invoking 'start()' manually
 def run_bot():
     bot = TelegramBot()  # Instantiate the bot
     bot.run()  # This will run the bot and wait for user commands
