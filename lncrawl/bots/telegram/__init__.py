@@ -74,12 +74,10 @@ class TelegramBot:
         self.setup_conversation_handler()
         self.application.run_polling()  # This starts the bot and listens for commands like /start
 
-
 # Use this method to start the bot without directly invoking 'start()'
 def run_bot():
     bot = TelegramBot()  # Instantiate the bot
     bot.run()  # This will run the bot and wait for user commands
-
 
 if __name__ == "__main__":
     run_bot()
