@@ -21,7 +21,6 @@ RUN pip install --upgrade pip
 # Install Python dependencies
 RUN pip install --no-cache-dir \
     pyrogram \
-    tgcrypto \
     psutil \
     gunicorn==20.1.0
     
