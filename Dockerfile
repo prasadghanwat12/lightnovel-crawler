@@ -22,6 +22,7 @@ RUN pip install --upgrade pip
 RUN pip install --no-cache-dir \
     pyrogram \
     psutil \
+    Flask \
     gunicorn==20.1.0
     
 COPY requirements.txt .
