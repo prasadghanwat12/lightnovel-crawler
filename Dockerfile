@@ -21,6 +21,12 @@ RUN pip install --no-cache-dir \
     psutil \
     gunicorn==20.1.0
 
+COPY requirements.txt .
+
+# Install Python dependencies from the requirements file and gunicorn
+RUN pip install --no-cache-dir -r requirements.txt \
+    gunicorn==20.1.0
+
 # Copy the entire application code to the container
 COPY . .
 
