@@ -23,6 +23,12 @@ app = Client("lncrawl_bot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKE
 
 def run_lncrawl(user_id, source_url):
     """Runs lncrawl for a specific user and manages the process."""
+    # Check CPU usage before starting the process
+    cpu_usage = psutil.cpu_percent(interval=1)  # Check CPU usage over 1 second
+    if cpu_usage > 80:
+        app.send_message(user_id, f"⚠️ High CPU usage detected ({cpu_usage}%). Please try again later.")
+        return  # Stop execution if CPU is too high
+
     output_path = os.path.join(LCRAWL_PATH, "output", str(user_id))
     os.makedirs(output_path, exist_ok=True)
 
