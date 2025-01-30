@@ -23,6 +23,7 @@ RUN pip install --no-cache-dir \
     pyrogram \
     psutil \
     Flask \
+    tgcrypto \
     gunicorn==20.1.0
     
 COPY requirements.txt .
