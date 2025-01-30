@@ -39,4 +39,4 @@ ENV LCRAWL_PATH="/app"
 EXPOSE 8000
 
 # Run both gunicorn for the web app and the Telegram bot
-CMD ["sh", "-c", "gunicorn app:app --bind 0.0.0.0:8000 & python3 main.py"]
+CMD ["sh", "-c", "gunicorn app:app --bind 0.0.0.0:8000 & python3 mybot.py"]
